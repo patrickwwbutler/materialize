@@ -854,13 +854,18 @@ impl<'a> Parser<'a> {
 
     fn parse_case_expr(&mut self) -> Result<Expr<Raw>, ParserError> {
         let mut operand = None;
+        println!("{:?}", self.peek_token());
         if !self.parse_keyword(WHEN) {
+            println!("Parsing operand for CASE expression");
             operand = Some(Box::new(self.parse_expr()?));
+            println!("operand: {:?}", operand);
             self.expect_keyword(WHEN)?;
         }
+        
         let mut conditions = vec![];
         let mut results = vec![];
         loop {
+            println!("Parsing condition for CASE expression");
             conditions.push(self.parse_expr()?);
             self.expect_keyword(THEN)?;
             results.push(self.parse_expr()?);
@@ -7051,6 +7056,13 @@ impl<'a> Parser<'a> {
                 BOOLEAN => other(ident!("bool")),
                 BYTES => other(ident!("bytea")),
                 JSON => other(ident!("jsonb")),
+                kw if kw.is_reserved() => {
+                    return self.expected(
+                        self.peek_prev_pos(),
+                        "a data type name",
+                        Some(Token::Keyword(kw)),
+                    );
+                }
                 _ => {
                     self.prev_token();
                     RawDataType::Other {
