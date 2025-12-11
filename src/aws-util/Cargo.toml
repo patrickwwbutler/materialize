@@ -11,8 +11,8 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.100"
-aws-config = { version = "1.2.0", default-features = false }
-aws-sdk-s3 = { version = "1.48.0", default-features = false, features = [
+aws-config = { version = "1.8.10", default-features = false }
+aws-sdk-s3 = { version = "1.94.0", default-features = false, features = [
     "rt-tokio",
 ], optional = true }
 aws-smithy-runtime-api = "1.9.2"
@@ -28,7 +28,7 @@ mz-ore = { path = "../ore", features = ["async"], default-features = false }
 pin-project = "1.1.10"
 thiserror = "2.0.17"
 tokio = { version = "1.48.0", default-features = false, features = ["macros"] }
-uuid = { version = "1.18.1", features = ["v4"] }
+uuid = { version = "1.19.0", features = ["v4"] }
 workspace-hack = { version = "0.0.0", path = "../workspace-hack", optional = true }
 
 [dev-dependencies]

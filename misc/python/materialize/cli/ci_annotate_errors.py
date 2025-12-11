@@ -92,6 +92,7 @@ ERROR_RE = re.compile(
     | SUMMARY:\ .*Sanitizer
     | primary\ source\ \w+\ seemingly\ dropped\ before\ subsource
     | :\ test\ timed\ out
+    | very\ slow\ coordinator\ message
     # Only notifying on unexpected failures. INT, TRAP, BUS, FPE, SEGV, PIPE
     | \ ANOM_ABEND\ .*\ sig=(2|5|7|8|11|13)
     # \s\S is any character including newlines, so this matches multiline strings
@@ -107,6 +108,7 @@ ERROR_RE = re.compile(
     | source-table-migration\ issue
     # sql logic tests
     | Rewrite\ SLT\ files\ locally\ with:\ [\s\S]*? ^EOF$
+    | ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s+thread\ '.*?'\ panicked\ at\ .*\n.*
     # rdkafka assertions
     | Assertion\ `.*'\ failed\.
     | Invalid\ data\ in\ source\ errors,\ saw\ retractions
@@ -194,6 +196,8 @@ IGNORE_RE = re.compile(
     | cannot\ load\ unknown\ system\ parameter
     # Occurs in Orchestratord test when restarting
     | comm="containerd"\ exe="/usr/local/bin/containerd"\ sig=11
+    # TODO: Reenable when https://github.com/MaterializeInc/database-issues/issues/9970 is fixed
+    | limits-materialized-.* \| .* very\ slow\ coordinator\ message
     )
     """,
     re.VERBOSE | re.MULTILINE,

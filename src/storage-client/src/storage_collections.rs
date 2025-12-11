@@ -349,6 +349,9 @@ pub trait StorageCollections: Debug + Sync {
         &self,
         id: GlobalId,
     ) -> Result<Option<TimeDependence>, TimeDependenceError>;
+
+    /// Returns the state of [`StorageCollections`] formatted as JSON.
+    fn dump(&self) -> Result<serde_json::Value, anyhow::Error>;
 }
 
 /// A cursor over a snapshot, allowing us to read just part of a snapshot in its
@@ -1871,11 +1874,20 @@ where
                     // somewhere
                     debug!("mapping GlobalId={} to shard ({})", id, metadata.data_shard);
 
+                    // If this collection has a primary, the primary is responsible for downgrading
+                    // the critical since and it would be an error if we did so here while opening
+                    // the since handle.
+                    let since = if description.primary.is_some() {
+                        None
+                    } else {
+                        description.since.as_ref()
+                    };
+
                     let (write, mut since_handle) = this
                         .open_data_handles(
                             &id,
                             metadata.data_shard,
-                            description.since.as_ref(),
+                            since,
                             metadata.relation_desc.clone(),
                             persist_client,
                         )
@@ -2606,6 +2618,55 @@ where
             };
         }
         Ok(result)
+    }
+
+    fn dump(&self) -> Result<serde_json::Value, anyhow::Error> {
+        // Destructure `self` here so we don't forget to consider dumping newly added fields.
+        let Self {
+            envd_epoch,
+            read_only,
+            finalizable_shards,
+            finalized_shards,
+            collections,
+            txns_read: _,
+            config,
+            initial_txn_upper,
+            persist_location,
+            persist: _,
+            cmd_tx: _,
+            holds_tx: _,
+            _background_task: _,
+            _finalize_shards_task: _,
+        } = self;
+
+        let finalizable_shards: Vec<_> = finalizable_shards
+            .lock()
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        let finalized_shards: Vec<_> = finalized_shards
+            .lock()
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        let collections: BTreeMap<_, _> = collections
+            .lock()
+            .expect("poisoned")
+            .iter()
+            .map(|(id, c)| (id.to_string(), format!("{c:?}")))
+            .collect();
+        let config = format!("{:?}", config.lock().expect("poisoned"));
+
+        Ok(serde_json::json!({
+            "envd_epoch": envd_epoch,
+            "read_only": read_only,
+            "finalizable_shards": finalizable_shards,
+            "finalized_shards": finalized_shards,
+            "collections": collections,
+            "config": config,
+            "initial_txn_upper": initial_txn_upper,
+            "persist_location": format!("{persist_location:?}"),
+        }))
     }
 }
 
